@@ -1,0 +1,30 @@
+{
+  "name": "musikov",
+  "version": "0.0.1",
+  "description": "MIDI files run thru Markov chains!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon app.js"
+  },
+  "keywords": [
+    "markov",
+    "MIDI",
+    "prediction",
+    "music",
+    "algorithm"
+  ],
+  "author": "David Newman",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "directory-tree": "^1.1.1",
+    "express": "^4.14.0",
+    "fs": "0.0.1-security",
+    "midi-file": "^1.0.2",
+    "midi-file-parser": "^1.0.0",
+    "midi-parser-js": "^2.0.2",
+    "nodemon": "^1.11.0",
+    "q": "^1.4.1"
+  }
+}
