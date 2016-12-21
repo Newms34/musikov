@@ -30,10 +30,10 @@ var noteMarkov = function(notes, oldMark) {
                 if (!markObj[trk][thisStr]) {
                     markObj[trk][thisStr] = {}; //obj of pos notes following this;
                     if (oldMark) {
-                        console.log('NEW', thisStr, markObj[trk][thisStr])
+                        // console.log('NEW', thisStr, markObj[trk][thisStr])
                     }
                 } else if (oldMark) {
-                    console.log('PREV', thisStr, markObj[trk][thisStr])
+                    // console.log('PREV', thisStr, markObj[trk][thisStr])
                 }
                 for (j = 0; j < notes[trk].length; j++) {
                     if (notes[trk][j].stringForm == thisStr && notes[trk][j + 1] && !markObj[trk][thisStr][notes[trk][j + 1].stringForm]) {
@@ -46,7 +46,7 @@ var noteMarkov = function(notes, oldMark) {
         }
     }
     if (oldMark) {
-        console.log(JSON.stringify(markObj), 'ALTERED MARK')
+        // console.log(JSON.stringify(markObj), 'ALTERED MARK')
     }
     return markObj;
 }
@@ -132,7 +132,7 @@ var alterMidi = function(newStuff, song) {
     for (var trk in newStuff) {
         for (var i = 0; i < song.tracks.length; i++) {
             if (song.tracks[i][0].text == trk) {
-                console.log('FOUND ORIGINAL TRACK!!!')
+                // console.log('FOUND ORIGINAL TRACK!!!')
                 var allNotes = [];
                 var noteStart = null; //where's the first note?
                 var notesOn = {}; //which notes are on?
@@ -217,31 +217,34 @@ var alterMidi = function(newStuff, song) {
     velocity: Volume? we can try just setting this to 47 for noteOn, and 0 for noteOff}
 */
 var fsp = Q.denodeify(fs.readFile);
-var baseUrl = './data/classicalPiano/brahms/'
+var baseUrl = './beethoven/'
 var inFolder = dTree(baseUrl).children,
     songProms = [];
+inFolder = inFolder.filter((s) => {
+    return s.name.indexOf('format0') == -1;
+})
 inFolder.forEach((f) => {
-    if (f.name.indexOf('format0') == -1) {
-        songProms.push(fsp(baseUrl + f.name))
-    }
+    songProms.push(fsp(baseUrl + f.name))
 })
 Q.all(songProms).then((songs) => {
     var theMark = null,
-        songsDone = 0;
+        songsDone = 0,
+        trackNames=[];
     songs.forEach((s, i) => {
         var song = parseMidi(s);
         noteObj = {};
         song.tracks.forEach((x) => {
             if (x[1].type == 'programChange' && x[0].type == 'trackName' && x[0].text != 'Pesdale') {
-                console.log('track for',x[0].text)
+                x[0].text = x[0].text.toLowerCase();
+                console.log('track for', x[0].text);
                 parseTrack(x, x[0].text);
             }
-        })
-        console.log(noteObj['Piano left'])
+        });
+        // console.log(noteObj['Piano left']);
         // console.log('NUM NOTES PROBLY', Object.keys(noteObj['Piano left']).length)
-        // theMark = noteMarkov(noteObj, theMark);
+        theMark = noteMarkov(noteObj, theMark);
         songsDone++;
-        console.log(songsDone, 'songs of', songs.length, 'done')
+        console.log(songsDone, 'songs of', songs.length, 'done. Next is', inFolder[songsDone].name)
     });
     // console.log('SONGS', songs)
     console.log('LINE 239')
