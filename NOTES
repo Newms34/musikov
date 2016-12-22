@@ -1,0 +1,7 @@
+NOTES:
+instrument is determined by 'programNumber', where 0 is 'piano'.
+it SEEMS that the second and third tracks are, to a large extent, the piano tracks
+
+
+switch to midi-file (https://www.npmjs.com/package/midi-file)?
+green hour (tunein.com)
