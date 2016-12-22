@@ -1,6 +1,6 @@
 {
   "name": "musikov",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "MIDI files run thru Markov chains!",
   "main": "index.js",
   "scripts": {
