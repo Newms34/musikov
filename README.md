@@ -19,7 +19,7 @@ Usage is pretty simple. Just:
 
 2. Include it in your js with `var musikov = require('musikov');`
 
-3. Finally, call it with: `musikov.doSongs('mozart');`.
+3. Finally, call it with `musikov.doSongs('mozart');`.
 
 Note that Musikov does *not* return anything, other than a success or error message as appropriate.
 
@@ -28,6 +28,8 @@ The main function of Musikov, `doSongs()`, takes one required and one optional p
 
  - `artist`: Required. The name of the artist you wanna analyze. There *must* be a folder with this artist as its name in the current directory (or, if using the parameter below, in the directory specified below).
  - `directory`: Optional. If omitted, this will default to the included sample folder (`./sampleMids`), which contains one folder with songs by Sergei Vasilievich Rachmaninoff. 
+
+So the correct format is: `musikov.doSongs('beethoven','./allMySongs/');
 
 ##Restrictions:
 This is still a bit of a work in progress, and as such there are few notable restrictions on what kinda songs you can use.
