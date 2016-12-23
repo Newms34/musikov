@@ -15,11 +15,11 @@ Run a Markov chain generator on MIDI files! Using simple Markov analysis, genera
 
 Usage is pretty simple. Just:
 
-1. Install with `$npm install musikov --save`
+1. Install with `$npm install Musikov --save`
 
-2. Include it in your js with `var musikov = require('musikov');`
+2. Include it in your js with `var Musikov = require('Musikov');`
 
-3. Finally, call it with `musikov.doSongs('mozart');`.
+3. Finally, call it with `Musikov.doSongs('mozart');`.
 
 Note that Musikov does *not* return anything, other than a success or error message as appropriate.
 
@@ -27,14 +27,26 @@ Note that Musikov does *not* return anything, other than a success or error mess
 The main function of Musikov, `doSongs()`, takes one required and one optional parameter as follows:
 
  - `artist`: Required. The name of the artist you wanna analyze. There *must* be a folder with this artist as its name in the current directory (or, if using the parameter below, in the directory specified below).
- - `directory`: Optional. If omitted, this will default to the included sample folder (`./sampleMids`), which contains one folder with songs by Sergei Vasilievich Rachmaninoff. 
+ - `options`: Optional. This optional options object (try saying *that* three times fast!) itself includes a bunch of options:
 
-So the correct format is: `musikov.doSongs('beethoven','./allMySongs/');
+  - `dir`: Parent directory of the midi files. Useful if you wanna run Musikov on some far-away MIDI files. Defaults to `./sampleMids/`, which is a folder of works by Sergei Rachmaninoff.
+  - `res`: Resolution of the sampling. The default is max resolution, but if your sample's too small (or too random!), lowering the same may help. Minimum of 1, maximum of 10, and default of 10.
+  - `len`: Length of the resultant song, in number of notes (*not* duration!). Defaults to 200. 
+
+So the correct format is: 
+
+```Musikov.doSongs('beethoven',{
+dir:'./allMySongs/',
+res:5,
+len:150
+});```
+
+for a folder of songs by beethoven (presumably), in a directory allSongs, with a resolution of 5 and a length of 150 notes. Note that the parameters above can be included in any order, so `doSongs({res:2},'mozart')` works too.
 
 ##Restrictions:
-This is still a bit of a work in progress, and as such there are few notable restrictions on what kinda songs you can use.
+This is still a work in progress, and as such there are few notable restrictions on what kinda songs you can use.
 
-1. You can, generally, only use piano music. Or, to be more accurate, only piano tracks are actually read. I'll change this eventually, but for now, get your Chopin on.
+1. For some reason, instruments other than piano seem to work rarely, if ever. This partially has to do with how the module interprets tracks for which it can't determine the instrument. I'll fix this eventually, but for now, get your Chopin on.
 2. You may find instances of prolonged silence (i.e., no notes playing). I'm not *really* sure how to alleviate this problem, but for now, just fast-forward a bit.
 3. Occasionally, the module crashes. If this happens, just restart your app, and run Musikov again. Since apparently turning things off and then on again is a valid debugging strategy.
 
