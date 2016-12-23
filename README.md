@@ -35,11 +35,11 @@ The main function of Musikov, `doSongs()`, takes one required and one optional p
 
 So the correct format is: 
 
-```Musikov.doSongs('beethoven',{
+`Musikov.doSongs('beethoven',{
 dir:'./allMySongs/',
 res:5,
 len:150
-}); ```
+});`
 
 for a folder of songs by beethoven (presumably), in a directory allSongs, with a resolution of 5 and a length of 150 notes. Note that the parameters above can be included in any order, so `doSongs({res:2},'mozart')` works too.
 
