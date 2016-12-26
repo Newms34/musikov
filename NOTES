@@ -1,7 +1,3 @@
-NOTES:
-instrument is determined by 'programNumber', where 0 is 'piano'.
-it SEEMS that the second and third tracks are, to a large extent, the piano tracks
+It SEEMS like the program change (i.e., instr change) changes all subsequent tracks too.
 
-
-switch to midi-file (https://www.npmjs.com/package/midi-file)?
-green hour (tunein.com)
+Issue with notes 'bunching' at the start of the song. Seems to be an issue with finding the end note for a given note.
