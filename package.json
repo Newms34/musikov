@@ -25,6 +25,7 @@
     "midi-file-parser": "^1.0.0",
     "midi-parser-js": "^2.0.2",
     "midiconvert": "^0.4.0",
+    "midijs": "^0.12.0",
     "nodemon": "^1.11.0",
     "q": "^1.4.1"
   }

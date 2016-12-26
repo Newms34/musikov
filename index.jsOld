@@ -2,51 +2,58 @@ var fs = require('fs'),
     path = require('path'),
     dTree = require('directory-tree'),
     midiConv = require('midiconvert'),
+    instrParser = require('midi-file-parser'),
     bodyParser = require('body-parser'),
     Q = require('q'),
     fsp = Q.denodeify(fs.readFile),
-    chalk=require('chalk'),
-    instrs = ['piano left','piano right','strings 1&2','strings viola','strings cello&bass','pedal','bassoon','trumpet','vocals','trombone','tympani','timpani','flute','oboe','clarinet','violin','viola','cello','double bass','Clarinetto','Fagotto','Corno'];//eventually, i'll use this to do ALL the musics.
-var markObj = {
-    left: {},
-    right: {}
-}; //the markov object!
+    MIDI = require('midijs'),
+    chalk = require('chalk'),
+    instrs = ["acoustic grand", "bright acoustic", "electric grand", "honky-tonk", "electric piano 1", "electric piano 2", "harpsichord", "clav", "celesta", "glockenspiel", "music box", "vibraphone", "marimba", "xylophone", "tubular bells", "dulcimer", "drawbar organ", "percussive organ", "rock organ", "church organ", "reed organ", "accordion", "harmonica", "tango accordion", "acoustic guitar(nylon)", "acoustic guitar(steel)", "electric guitar(jazz)", "electric guitar(clean)", "electric guitar(muted)", "overdriven guitar", "distortion guitar", "guitar harmonics", "acoustic bass", "electric bass(finger)", "electric bass(pick)", "fretless bass", "slap bass 1", "slap bass 2", "synth bass 1", "synth bass 2", "violin", "viola", "cello", "contrabass", "tremolo strings", "pizzicato strings", "orchestral harp", "timpani", "string ensemble 1", "string ensemble 2", "synthstrings 1", "synthstrings 2", "choir aahs", "voice oohs", "synth voice", "orchestra hit", "trumpet", "trombone", "tuba", "muted trumpet", "french horn", "brass section", "synthbrass 1", "synthbrass 2", "soprano sax", "alto sax", "tenor sax", "baritone sax", "oboe", "english horn", "bassoon", "clarinet", "piccolo", "flute", "recorder", "pan flute", "blown bottle", "shakuhachi", "whistle", "ocarina", "lead 1 (square)", "lead 2 (sawtooth)", "lead 3 (calliope)", "lead 4 (chiff)", "lead 5 (charang)", "lead 6 (voice)", "lead 7 (fifths)", "lead 8 (bass+lead)", "pad 1 (new age)", "pad 2 (warm)", "pad 3 (polysynth)", "pad 4 (choir)", "pad 5 (bowed)", "pad 6 (metallic)", "pad 7 (halo)", "pad 8 (sweep)", "fx 1 (rain)", "fx 2 (soundtrack)", "fx 3 (crystal)", "fx 4 (atmosphere)", "fx 5 (brightness)", "fx 6 (goblins)", "fx 7 (echoes)", "fx 8 (sci-fi)", "sitar", "banjo", "shamisen", "koto", "kalimba", "bagpipe", "fiddle", "shanai", "tinkle bell", "agogo", "steel drums", "woodblock", "taiko drum", "melodic tom", "synth drum", "reverse cymbal", "guitar fret noise", "breath noise", "seashore", "bird tweet", "telephone ring", "helicopter", "applause", "gunshot"],
+    markObj = {},
+    songInstrArr = []; //the markov object! Oboy!
 
 var markParser = function(tracks) {
+    var dups = false;
     for (var trk in tracks) {
         if (tracks.hasOwnProperty(trk)) {
+            if (!markObj[trk]) markObj[trk] = {};
+            console.log('TRACK SAMPLE', trk, tracks[trk][3])
             for (var i = 0; i < tracks[trk].length; i++) {
-                if (!markObj[trk][tracks[trk][i]['forMark']]) {
+                if (!markObj[trk][tracks[trk][i].join('_')]) {
                     //note (and its followers) not already recorded. Make new obj
-                    markObj[trk][tracks[trk][i]['forMark']] = {
-                        actual: tracks[trk][i]['actual']
+                    markObj[trk][tracks[trk][i].join('_')] = {
+
                     };
                 }
                 //now look at its follower (if any!)
                 if (tracks[trk][i] && tracks[trk][i + 1]) {
-                    if (!markObj[trk][tracks[trk][i]['forMark']][tracks[trk][i + 1]['forMark']]) {
-                        markObj[trk][tracks[trk][i]['forMark']][tracks[trk][i + 1]['forMark']] = 1;
+                    if (!markObj[trk][tracks[trk][i].join('_')][tracks[trk][i + 1].join('_')]) {
+                        markObj[trk][tracks[trk][i].join('_')][tracks[trk][i + 1].join('_')] = 1;
                     } else {
-                        markObj[trk][tracks[trk][i]['forMark']][tracks[trk][i + 1]['forMark']]++;
+                        markObj[trk][tracks[trk][i].join('_')][tracks[trk][i + 1].join('_')]++;
+                        dups = true;
                     }
                 }
             }
         }
     }
-        //made Markov obj!
+    if (!dups) console.log(chalk.red('WARNING:') + ' No duplicate following nodes were detected. Markov generation may not work very well on this sample!\n' + chalk.blue('TIP:') + 'Try passing ' + chalk.cyan('doSong()') + ' an ' + chalk.cyan('options') + ' object with a lower ' + chalk.cyan('resolution') + ' parameter:' + chalk.cyan('musikov.doSong("myArtist",{res:1})'));
+    //made Markov obj!
 }
+
 var genMark = function(m, l) {
-    var newNotes = {}
+    var newNotes = {};
     for (var trk in m) {
-        if (m.hasOwnProperty(trk)) {
+        console.log('generating notes for', trk)
+        if (m.hasOwnProperty(trk) && getInstrNumber(trk)) {
             newNotes[trk] = [];
-            var seed = Object.keys(m[trk])[Math.floor(Math.random() * Object.keys(m[trk]).length)]
+            var seed = Object.keys(m[trk])[Math.floor(Math.random() * Object.keys(m[trk]).length)];
             for (var i = 0; i < l; i++) {
-                newNotes[trk].push(m[trk][seed]['actual'])
                 while (!m[trk][seed]) {
                     //while the seed doesnt exist, try to get a new one
                     seed = Object.keys(m[trk])[Math.floor(Math.random() * Object.keys(m[trk]).length)];
                 }
+                newNotes[trk].push(seed)
                 var probArr = []; //arr, probly. Shiver me timbers!
                 for (fol in m[trk][seed]) {
                     if (m[trk][seed].hasOwnProperty(fol)) {
@@ -63,85 +70,173 @@ var genMark = function(m, l) {
 }
 
 var baseUrl = './data/classicalPiano/';
-var parseNotes = function(songList,who) {
-    var notesLeft = [],
-        notesRight = [];
-        foundTracks = [false,false];
-    songList.forEach((s) => {
-            for (var i = 0; i < s.tracks.length; i++) {
-                if (s.tracks[i].name.toLowerCase() == 'piano right') {
-                    foundTracks[0]=true;
-                    //this is a relevant track! create note-time-dur markov elements
-                    s.tracks[i].notes.forEach((n) => {
-                        notesRight.push({
-                            actual: [n.midi, n.time, n.duration],
-                            forMark: [n.midi, parseInt(n.time), parseInt(n.duration * 100) / 100].join('_')
-                        }); //times are in SEC! 
-                    })
-                } else if (s.tracks[i].name.toLowerCase() == 'piano left') {
-                    foundTracks[1]=true;
-                    s.tracks[i].notes.forEach((n) => {
-                        notesLeft.push({
-                            actual: [n.midi, n.time, n.duration],
-                            forMark: [n.midi, parseInt(n.time), parseInt(n.duration * 100) / 100].join('_')
-                        }); //times are in SEC! 
-                    })
+var parseNotes = function(songList, who, res, allLen) {
+    var instrObj = {},
+        foundTracks = false;
+    songsDone = 0;
+    songList.forEach((s,which) => {
+        for (var i = 0; i < s.tracks.length; i++) {
+            var trackForName = songInstrArr[which].getTrack(i);
+            console.log('trackForName',trackForName)
+            //find the event with the instrument desig. We're returning a number here
+            var trakNum = null;
+            for(var j=0;j<trackForName._events.length;j++){
+                console.log('ev type',trackForName._events[j].type,'prog',trackForName._events[j].program)
+                if(trackForName._events[j].type==12 && (trackForName._events[j].program || trackForName._events[j].program==0)){
+                    trakNum =trackForName._events[j].program;
                 }
             }
-        })
-    if(!foundTracks[0]){
-        console.log(chalk.red('WARNING:')+' Piano Right track not found! The resulting MIDI file may have no data!')
-    }
-    if(!foundTracks[1]){
-        console.log(chalk.red('WARNING:')+' Piano left track not found! The resulting MIDI file may have no data!')
-    }
-        //now pass into markov obj generator!
-    markParser({
-        left: notesLeft,
-        right: notesRight
+            // var trackStdized = s.tracks[i].name.toLowerCase().trim(); //get name, remove any whitespace
+            // if (s.tracks[i].name.toLowerCase().indexOf('\(') > -1) trackStdized = s.tracks[i].name.toLowerCase().slice(0, s.tracks[i].name.toLowerCase().lastIndexOf('\(')).trim();
+            // if (s.tracks[i].name == '' && s.tracks[i].notes && s.tracks[i].notes.length) {
+            //     trackStdized = 'Acoustic Grand';
+            // }
+            if (trakNum || trakNum==0) {
+            console.log('Track\'s instrument', instrs[trakNum])
+                // trackStdized = trackStdized.slice(0, 1).toUpperCase() + trackStdized.slice(1);
+                //this track is (most likely) an instrument!
+                foundTracks = true;
+                if (!instrObj[instrs[trakNum]]) instrObj[instrs[trakNum]] = [];
+                //this is a relevant track! create note-time-dur markov elements
+                s.tracks[i].notes.forEach((n) => {
+                    var timeMult = res * 10,
+                        durMult = (1100 - (1110 * res)) / -1,
+                        timeConv = parseInt(n.time * timeMult) / timeMult,
+                        durConv = parseInt(n.duration * durMult) / durMult;
+                    instrObj[instrs[trakNum]].push(
+                        [n.midi, timeConv, durConv]
+                    ); //times are in SEC! 
+                })
+            }
+        }
     });
+    if (!foundTracks) {
+        console.log(chalk.red('WARNING:') + 'No instrument tracks found! The resulting MIDI file may have no data!')
+    }
+
+    //now pass into markov obj generator!
+    console.log("BEFORE MARKOV ANA")
+    markParser(instrObj);
     //generate Markov!
-    var newNotes = genMark(markObj, 200);
+    console.log("BEFORE GENMARK")
+    var newNotes = genMark(markObj, allLen);
     //now MIDI stuffs!
     var theMidi = midiConv.create();
+    //first, we add the 'title' track.
+    theMidi.track("Markov Does " + who);
+    var trackInstrs = [null];
     for (var trk in newNotes) {
         if (newNotes.hasOwnProperty(trk)) {
-            var trak = "theMidi.track(\'Piano "+trk+"\')";
-            for(var n=0;n<newNotes[trk].length;n++){
-                trak+='.note\('+newNotes[trk][n][0]+","+newNotes[trk][n][1]+","+newNotes[trk][n][2]+",.6\)";
+            var trak = "theMidi.track(\'" + trk + "\')";
+            for (var n = 0; n < newNotes[trk].length; n++) {
+                // console.log(typeof newNotes[trk][n],newNotes[trk][n])
+                trak += '.note\(' + newNotes[trk][n].split('_')[0] + "," + newNotes[trk][n].split('_')[1] + "," + newNotes[trk][n].split('_')[2] + ",.6\)";
             }
-            eval(trak);//eww, eval
+            eval(trak); //eww, eval
+            console.log('pushin', trk)
+            trackInstrs.push(trk);
+            //seein wat this does!
+            theMidi.tracks[theMidi.tracks.length - 1].controlChanges = {
+                    "7": [{
+                        "number": 7,
+                        "time": 0,
+                        "value": 1
+                    }],
+                    "10": [{
+                        "number": 10,
+                        "time": 0,
+                        "value": 0.5039370078740157
+                    }]
+                }
+                //add instrument info! Tryin again!
         }
     }
-    fs.writeFileSync("fake_"+who+".mid", theMidi.encode(), "binary")
-    console.log(chalk.green("Song")+" fake_"+who+".mid "+chalk.green("done!"))
+    // console.log(theMidi.encode, 'theMidi')
+    fs.writeFile("fake_" + who + ".mid", theMidi.encode(), "binary", function(err) {
+        if (err) throw new Error('Error saving file!')
+        fs.readFile("fake_" + who + ".mid", function(err, tomidijs) {
+                var fileForTones = new MIDI.File(tomidijs, function(err) {
+                    if (err) throw err;
+                });
+                var File = MIDI.File;
+                var tracks = fileForTones.getTracks();
+                tracks.forEach((trakTune, n) => {
+                    if (trackInstrs[n]) {
+                        console.log(trackInstrs[n])
+                        fileForTones.getTracks(n).addEvent(0, // position (optional)
+                            new File.ChannelEvent(File.ChannelEvent.TYPE.PROGRAM_CHANGE, {
+                                program: MIDI.gm.getProgram(getInstrNumber(trackInstrs[n]))
+                            }, 0, 0)
+                        );
+                    }
+                })
+            })
+            // {"deltaTime":0,"channel":8,"type":"channel","subtype":"programChange","programNumber":53}
+    });
+    console.log(chalk.green("Song") + " fake_" + who + ".mid " + chalk.green("created in ") + chalk.cyan(process.cwd()) + "!")
 }
-var doSong = function(artist,dir) {
+var getInstrNumber = function(targInstr) {
+    for (var i = 0; i < instrs.length; i++) {
+        if (targInstr.indexOf(instrs[i]) > -1) {
+            return i;
+        }
+    }
+    return false;
+}
+
+var doSong = function(artist, opts) {
+    console.log("OPTS", typeof opts, opts, opts.len)
     var songProms = [],
-        songs = [];
-    dir = dir || './sampleMids/'; 
-    if(!artist){
+        songs = [],
+        dir = './sampleMids/',
+        res = 10,
+        markLen = 200;
+    //sort args
+    if (typeof artist == 'object' && typeof opts == 'string') {
+        var tempArg = opts;
+        opts = artist;
+        artist = tempArg;
+    }
+    if (opts) {
+        if (opts.dir && typeof opts.dir == 'string') {
+            dir = opts.dir;
+        }
+        if (opts.res && (typeof opts.res == 'number' && !isNaN(parseInt(opts.res)))) {
+            res = parseInt(opts.res);
+        }
+        if (opts.len && (typeof opts.len == 'number' && !isNaN(parseInt(opts.len)))) {
+            markLen = parseInt(opts.len);
+        }
+    }
+    res = res > 10 ? 10 : res < 1 ? 1 : res; //cap res.
+    //max rez: time:xx.x, dur:x.xxxx
+    //min rez: time:x0.0, x.x
+
+    if (!artist) {
         throw new Error('You need to at least specify an artist!');
     }
-    var fileTree = dTree(dir+ artist + '/');
-    if (!fileTree){
-        throw new Error('Could not find any MIDI files in '+dir+artist+'!');
+    var fileTree = dTree(dir + artist + '/');
+    if (!fileTree) {
+        throw new Error('Could not find any MIDI files in ' + dir + artist + '!');
     }
     fileTree.children.forEach((f) => {
         if (f.name.indexOf('format0') < 0 && (f.extension == '.mid' || f.extension == '.midi')) {
             //valid file!
-            songProms.push(fsp(dir+artist+'/' + f.name, 'binary'));
+            songProms.push(fsp(dir + artist + '/' + f.name));
         }
     })
     Q.all(songProms).done(function(songsRaw) {
         songsRaw.forEach((s) => {
-            songs.push(midiConv.parse(s))
+            songs.push(midiConv.parse(s.toString('binary')))
+            songInstrArr.push(new MIDI.File(s, function(err) {
+                if (err) throw err;
+            }));
         })
-        parseNotes(songs,artist)
+        parseNotes(songs, artist, res, markLen)
     })
 
 }
 
-module.exports={
-    doSong:doSong
+module.exports = {
+    doSong: doSong
 }
