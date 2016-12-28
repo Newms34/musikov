@@ -103,6 +103,12 @@ var parseNotes = function(songList, who, res, allLen, shrink, required, grp) {
             for (var j = 0; j < songNotes.parts[i].length; j++) {
                 var noteDur = parseInt(parseInt(songNotes.parts[i][j].duration) / (11 - res)) * (11 - res);
                 var noteTime = parseInt(parseInt(songNotes.parts[i][j].time) / (10 * (11 - res))) * (10 * (11 - res)) / shrink;
+                // if (isNaN(songNotes.parts[i][j].midiNote) || songNotes.parts[i][j].midiNote == 'NaN') {
+                //     throw new Error('NOTE IS NOT A NUMBER(?!): ' + JSON.stringify(songNotes.parts[i][j]))
+                // }else{
+                //     console.log('OKay!',JSON.stringify(songNotes.parts[i][j]))
+                // }
+                if (!songNotes.parts[i][j].midiNote && songNotes.parts[i][j].midiNote !== 0) continue;
                 newTrkNotes.push(songNotes.parts[i][j].midiNote + '_' + noteTime + '_' + noteDur);
             }
             newTrkNotes = newTrkNotes.sort((a, b) => {
@@ -123,6 +129,8 @@ var parseNotes = function(songList, who, res, allLen, shrink, required, grp) {
     var theMidi = new MIDI.File(),
         numTracks = 0;
     var trakNames = Object.keys(newNotes);
+    var inclTracks = [];
+    console.log(required)
     while (numTracks < 15 && trakNames.length) {
         var whichTrak = null;
         if (required && required.length && trakNames.indexOf(required[0]) > -1) {
@@ -132,22 +140,28 @@ var parseNotes = function(songList, who, res, allLen, shrink, required, grp) {
         }
         var trak = trakNames[whichTrak],
             toEval = 'theMidi.addTrack()';
+            console.log('adding track',trak,', length',newNotes[trak].length)
+        inclTracks.push(trak);
         toEval += '.instrument(' + numTracks + ',0x' + instrs.indexOf(trak).toString(16) + ')'
         for (var i = 0; i < newNotes[trak].length; i++) {
+            if(!i) console.log('First note:',newNotes[trak][i])
             var oneNote = newNotes[trak][i].split('_');
             toEval += '.note(' + numTracks + ',"' + midiConv.MidiGen.Util.noteFromMidiPitch(parseInt(oneNote[0])) + '",' + parseInt(oneNote[2]) + ',' + parseInt(oneNote[1]) + ')'
         }
-        eval(toEval);
         trakNames.splice(whichTrak, 1); //remove this track!
         numTracks++;
+        eval(toEval);
     }
     if (trakNames.length) {
         var noInst = trakNames.map(function(t) {
+            return '\n' + chalk.red(' - ') + t;
+        }).join('');
+        var incInst = inclTracks.map(function(t) {
             return '\n' + chalk.green(' - ') + t;
         }).join('');
-        console.log(chalk.red('WARNING:') + 'There were more instruments than the MIDI format can hold (max 16). The following instruments were excluded:\n' + noInst)
+        console.log(chalk.red('WARNING:') + 'There were more instruments than the MIDI format can hold (max 16). The following instruments were included:\n' + incInst+'\nAnd the following were excluded: '+noInst)
     }
-    fs.writeFileSync(" fake_" + who + ".mid", theMidi.toBytes(), 'binary');
+    fs.writeFileSync("fake_" + who + ".mid", theMidi.toBytes(), 'binary');
     console.log(chalk.green("Song") + " fake_" + who + ".mid " + chalk.green("created in ") + chalk.cyan(process.cwd()) + "!")
 }
 var getInstrNumber = function(targInstr) {
@@ -192,8 +206,8 @@ var doSong = function(artist, opts) {
             grp = opts.grp;
         }
         if (opts.req && req instanceof Array) {
-            required = opts.req;
-            required = required.map((r) => {
+            req = opts.req;
+            req = req.map((r) => {
                 if (parseInt(r).toString == r.toString() && parseInt(r) < instrs.length) {
                     return instrs[r];
                 } else if (instrs.indexOf(r) > -1) {
@@ -224,7 +238,7 @@ var doSong = function(artist, opts) {
         }
     })
     Q.all(songProms).done(function(songsRaw) {
-        parseNotes(songsRaw, artist, res, markLen, shrink, required, grp)
+        parseNotes(songsRaw, artist, res, markLen, shrink, req, grp)
     })
 
 }
