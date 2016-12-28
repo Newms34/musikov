@@ -3,4 +3,5 @@ bower_components
 npm-debug.log
 .DS_Stores
 remoteSeed
+sampleMids/potc
 data

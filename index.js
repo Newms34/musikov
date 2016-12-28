@@ -140,11 +140,9 @@ var parseNotes = function(songList, who, res, allLen, shrink, required, grp) {
         }
         var trak = trakNames[whichTrak],
             toEval = 'theMidi.addTrack()';
-            console.log('adding track',trak,', length',newNotes[trak].length)
         inclTracks.push(trak);
         toEval += '.instrument(' + numTracks + ',0x' + instrs.indexOf(trak).toString(16) + ')'
         for (var i = 0; i < newNotes[trak].length; i++) {
-            if(!i) console.log('First note:',newNotes[trak][i])
             var oneNote = newNotes[trak][i].split('_');
             toEval += '.note(' + numTracks + ',"' + midiConv.MidiGen.Util.noteFromMidiPitch(parseInt(oneNote[0])) + '",' + parseInt(oneNote[2]) + ',' + parseInt(oneNote[1]) + ')'
         }

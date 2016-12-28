@@ -27,15 +27,20 @@ Note that Musikov does *not* return anything, other than success or error messag
 The main function of Musikov, `doSongs()`, takes one required and one optional parameter as follows:
 
  - `artist`: Required. The name of the artist you wanna analyze. There *must* be a folder with this artist as its name in the current directory (or, if using the parameter below, in the directory specified below).
+
  - `options`: Optional. This optional options object (try saying *that* three times fast!) itself includes a bunch of options (all of which, themselves, are optional):
 
   - `dir`: Parent directory of the midi files. Useful if you wanna run Musikov on some far-away MIDI files. Defaults to `./sampleMids/`, which is a folder of some assorted classical works.
+
   - `res`: Resolution of the sampling. Basically, a higher resolution (default) means that the actual, exact input values of parsed notes will be used. A lower value means that Musikov will round values somewhat. Minimum of 1, maximum of 10, and default of 10.
+
   - `len`: Length of the resultant song, in number of notes (*not* duration!). Defaults to 200. 
+
   - `shrink`: Occasionally, you may find that a particular artist tends to create very long MIDI files. Use this property to essentially divide the start time of each note by a value. Default here is 1 (real-time), and higher values will shorten the song.
-  -`req`: For very complex midis, or groups of midis with more than 16 total instruments, Musikov can only include up to 16. Right now, it randomly picks instruments to include. However, if you really want your song to include particular instruments, you can include an array with those here as either:
-  	- Instrument names (i.e.,'church organ');
-  	- Instrument number from the MIDI specification (i.e.,'19'); 
+
+  - `req`: For very complex midis, or groups of midis with more than 16 total instruments, Musikov can only include up to 16. Right now, it randomly picks instruments to include. However, if you really want your song to include particular instruments, you can include an array with those here as either:
+  	- Instrument names (i.e.,`['church organ']`);
+  	- Instrument number from the MIDI specification (i.e.,`['19']`); 
 
   - `grp`: Use this to treat groups of notes (anywhere from 1 to 10) as ONE markov item. This increases match accuracy, but also decreases number of matches. Best for really long samples.
 
