@@ -87,12 +87,18 @@ var genMark = function(m, l) {
 
 var baseUrl = './data/classicalPiano/';
 var parseNotes = function(songList, who, res, allLen, shrink, required, grp) {
+    // console.log('args',arguments)
     var instrObj = {},
-        songsDone = 0;
+        songsDone = 0,
+        wroteSampleSong = false;
     songList.forEach((s) => {
         var songNotes = midiConv.parse(s.toString('binary'), { duration: true }),
             instrNum = 0;
+        if(!wroteSampleSong){
+            fs.writeFileSync('sampleSong.json',JSON.stringify(songNotes),'utf-8')
+        }
         for (var i = 0; i < songNotes.parts.length; i++) {
+
             var trk = instrs[songNotes.transport.instruments[i] - 1]; //instrument name
             if (!trk) {
                 continue;
